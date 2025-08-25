@@ -1,10 +1,12 @@
 import os
+
 from ranger.api.commands import Command
 from ranger.core.loader import CommandLoader
 
+
 class extract_here(Command):
     def execute(self):
-        """ Extract selected .zip files to the current directory using 'unzip'. """
+        """Extract selected .zip files to the current directory using 'unzip'."""
         cwd = self.fm.thisdir
         marked_files = tuple(cwd.get_selection())
 
@@ -22,7 +24,7 @@ class extract_here(Command):
         self.fm.cut_buffer = False
 
         for f in marked_files:
-            if not f.path.lower().endswith('.zip'):
+            if not f.path.lower().endswith(".zip"):
                 self.fm.notify(f"Skipping non-zip file: {f.basename}", bad=True)
                 continue
 
@@ -30,10 +32,33 @@ class extract_here(Command):
             obj = CommandLoader(
                 args=["unzip", "-o", f.path, "-d", original_path],
                 descr=descr,
-                read=True
+                read=True,
             )
             obj.signal_bind("after", refresh)
             self.fm.loader.add(obj)
+
+
+class sudorename(Command):
+    """
+    :sudorename <newname>
+    Rename the current file using sudo (mv), prompting for your sudo password.
+    """
+
+    def execute(self):
+        new = self.rest(1)
+        if not new:
+            # open console pre-filled so you can type the new name
+            self.fm.open_console("sudorename ")
+            return
+
+        src = self.fm.thisfile.path
+        dst = os.path.join(self.fm.thisdir.path, new)
+
+        # run sudo mv and wait so ranger refreshes afterwards
+        self.fm.run(["sudo", "mv", "-v", "--", src, dst], flags="w")
+        # refresh directory view
+        self.fm.thisdir.load_content()
+
 
 # class compress(Command):
 #     def execute(self):
